@@ -34,7 +34,7 @@ const errorsByNameSorted = Object
   .sort(([,a], [,b]) => b.length - a.length);
 printCleanErrors(errorsByNameSorted);
 
-async function parseFile(): Promise<{
+export async function parseFile(): Promise<{
   [key: string]: (Message & { filePath: string; })[];
 }> {
   const file = await readFile('eslint.json');
