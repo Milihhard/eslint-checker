@@ -34,7 +34,7 @@ console.log('Filtered content with errors', contentWithErrors.length);
 const errors = contentWithErrors.flatMap(item => item.messages.map(message => ({
   ...message,
   filePath: item.filePath,
-})));
+}))).filter(item => item.severity === 2);
 console.log('Errors', errors.length);
 const errorsByName = errors.reduce<{
   [key: string]: Message[];
@@ -51,4 +51,4 @@ console.log('Errors by name', Object
   .entries(errorsByName)
   .sort(([,a], [,b]) => b.length - a.length)
   .map(([key, value]) => ({ key, value: value.length })));
-// console.log('no-parsing-error', errorsByName['vue/no-parsing-error']);
+// console.log('specific error', errorsByName['vue/custom-event-name-casing']);
