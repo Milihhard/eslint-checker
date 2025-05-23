@@ -1,4 +1,5 @@
-/* eslint-disable antfu/no-top-level-await */
+/* eslint-disable no-console */
+
 import { readFile } from 'node:fs/promises';
 
 console.log('Checking ESLint configuration...');
@@ -25,30 +26,50 @@ interface FileInfo {
   usedDeprecatedRules: unknown[];
   source: string;
 }
-const file = await readFile('eslint.json');
-console.log('File read');
-const content: FileInfo[] = JSON.parse(file.toString());
-console.log('Parsed content', content.length);
-const contentWithErrors = content.filter(item => item.errorCount > 0);
-console.log('Filtered content with errors', contentWithErrors.length);
-const errors = contentWithErrors.flatMap(item => item.messages.map(message => ({
-  ...message,
-  filePath: item.filePath,
-}))).filter(item => item.severity === 2);
-console.log('Errors', errors.length);
-const errorsByName = errors.reduce<{
-  [key: string]: Message[];
-}>((acc, error) => {
-  if (error.ruleId in acc) {
-    acc[error.ruleId].push(error);
-  }
-  else {
-    acc[error.ruleId] = [error];
-  }
-  return acc;
-}, {});
-console.log('Errors by name', Object
+// eslint-disable-next-line antfu/no-top-level-await
+const errorsByName = await parseFile();
+
+const errorsByNameSorted = Object
   .entries(errorsByName)
-  .sort(([,a], [,b]) => b.length - a.length)
-  .map(([key, value]) => ({ key, value: value.length })));
-// console.log('specific error', errorsByName['vue/custom-event-name-casing']);
+  .sort(([,a], [,b]) => b.length - a.length);
+printCleanErrors(errorsByNameSorted);
+
+async function parseFile(): Promise<{
+  [key: string]: (Message & { filePath: string; })[];
+}> {
+  const file = await readFile('eslint.json');
+  console.log('File read');
+  const content: FileInfo[] = JSON.parse(file.toString());
+  console.log('Parsed content', content.length);
+  const contentWithErrors = content.filter(item => item.errorCount > 0);
+  console.log('Filtered content with errors', contentWithErrors.length);
+  const errors = contentWithErrors.flatMap(item => item.messages.map(message => ({
+    ...message,
+    filePath: item.filePath,
+  }))).filter(item => item.severity === 2);
+  console.log('Errors', errors.length);
+  return errors.reduce<{
+    [key: string]: (Message & { filePath: string; })[];
+  }>((acc, error) => {
+        if (error.ruleId in acc) {
+          acc[error.ruleId].push(error);
+        }
+        else {
+          acc[error.ruleId] = [error];
+        }
+        return acc;
+      }, {});
+}
+
+function printCleanErrors(errors: [string, (Message & {
+  filePath: string;
+})[]][]) {
+  errors.forEach(([name, errors]) => {
+    console.log('--------------------');
+    console.log(name, errors.length);
+    console.log();
+    errors.forEach((error) => {
+      console.log(' - ', `${error.filePath}@${error.line}:${error.column}`);
+    });
+  });
+}
