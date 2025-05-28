@@ -13,6 +13,10 @@ interface Message {
   messageId: string;
   endLine: number;
   endColumn: number;
+  fix?: {
+    range: [number, number];
+    text: string;
+  };
 }
 interface FileInfo {
   filePath: string;
@@ -31,7 +35,7 @@ const errorsByName = await parseFile();
 
 const errorsByNameSorted = Object
   .entries(errorsByName)
-  .sort(([,a], [,b]) => b.length - a.length);
+  .sort(([,a], [,b]) => a.length - b.length);
 printCleanErrors(errorsByNameSorted);
 
 export async function parseFile(): Promise<{
@@ -46,7 +50,7 @@ export async function parseFile(): Promise<{
   const errors = contentWithErrors.flatMap(item => item.messages.map(message => ({
     ...message,
     filePath: item.filePath,
-  }))).filter(item => item.severity === 2);
+  }))).filter(item => item.severity === 2 && !item.fix);
   console.log('Errors', errors.length);
   return errors.reduce<{
     [key: string]: (Message & { filePath: string; })[];
